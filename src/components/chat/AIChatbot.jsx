@@ -14,6 +14,7 @@ import {
   Tag,
   ChevronRight,
   RotateCcw,
+  Mic,
 } from "lucide-react";
 import { useStore } from "@/context/StoreContext";
 import { useOrder } from "@/context/OrderContext";
@@ -267,6 +268,7 @@ export function AIChatbot() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [reasoning, setReasoning] = useState(null);
   const [hasUnread, setHasUnread] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -314,19 +316,33 @@ export function AIChatbot() {
       setInput("");
       setIsTyping(true);
 
-      // Simulate AI "thinking" delay (400–900ms)
-      const delay = 400 + Math.random() * 500;
-      setTimeout(() => {
-        const response = aiRespond(userText, orders);
-        const aiMsg = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          ...response,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMsg]);
-        setIsTyping(false);
-      }, delay);
+      // Simulate AI reasoning steps
+      const steps = [
+        "Analyzing intent...",
+        "Searching catalog...",
+        "Finding best matches..."
+      ];
+      let stepIndex = 0;
+      setReasoning(steps[stepIndex]);
+
+      const interval = setInterval(() => {
+        stepIndex++;
+        if (stepIndex < steps.length) {
+          setReasoning(steps[stepIndex]);
+        } else {
+          clearInterval(interval);
+          setReasoning(null);
+          const response = aiRespond(userText, orders);
+          const aiMsg = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            ...response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          setIsTyping(false);
+        }
+      }, 700);
     },
     [input, orders]
   );
@@ -376,11 +392,13 @@ export function AIChatbot() {
             onClick={handleOpen}
             id="ai-chatbot-trigger"
             aria-label="Open AI Shopping Assistant"
-            className="fixed bottom-6 right-6 z-[9998] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand to-clay shadow-lift cursor-pointer hover:scale-110 transition-transform duration-200 md:bottom-8 md:right-8"
+            className="fixed bottom-6 right-6 z-[9998] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand to-clay shadow-lift cursor-pointer hover:scale-110 transition-transform duration-200 md:bottom-8 md:right-8 group"
           >
-            <Sparkles className="size-6 text-white" />
+            {/* Glowing aura */}
+            <div className="absolute inset-0 rounded-full bg-brand/40 blur-xl group-hover:bg-brand/60 transition-colors duration-500 animate-pulse pointer-events-none" />
+            <Sparkles className="size-6 text-white relative z-10" />
             {hasUnread && (
-              <span className="absolute -right-0.5 -top-0.5 size-4 rounded-full bg-red-500 border-2 border-background animate-pulse" />
+              <span className="absolute -right-0.5 -top-0.5 size-4 rounded-full bg-red-500 border-2 border-background animate-pulse z-20" />
             )}
           </motion.button>
         )}
@@ -395,7 +413,7 @@ export function AIChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-4 right-4 z-[9998] flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_8px_40px_rgba(0,0,0,0.18)] md:bottom-8 md:right-8"
+            className="fixed bottom-4 right-4 z-[9998] flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.18)] md:bottom-8 md:right-8"
             style={{
               width: "min(390px, calc(100vw - 32px))",
               height: isMinimized ? "auto" : "min(580px, calc(100dvh - 100px))",
@@ -464,10 +482,10 @@ export function AIChatbot() {
                         {/* Text bubble */}
                         {msg.text && (
                           <div
-                            className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                            className={`px-4 py-2.5 text-xs leading-relaxed ${
                               msg.role === "user"
-                                ? "rounded-tr-sm bg-brand text-brand-foreground"
-                                : "rounded-tl-sm bg-muted text-foreground"
+                                ? "rounded-2xl rounded-tr-sm bg-brand text-brand-foreground shadow-sm"
+                                : "rounded-2xl rounded-tl-sm bg-gradient-to-br from-background to-muted border border-border/50 shadow-sm text-foreground"
                             }`}
                           >
                             {renderText(msg.text)}
@@ -517,22 +535,29 @@ export function AIChatbot() {
                         exit={{ opacity: 0, y: 8 }}
                         className="flex items-center gap-2.5"
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand to-clay text-white">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand to-clay text-white shadow-sm">
                           <Bot className="size-3.5" />
                         </div>
-                        <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-muted px-4 py-3">
-                          {[0, 1, 2].map((i) => (
-                            <motion.span
-                              key={i}
-                              className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/50"
-                              animate={{ y: [0, -4, 0] }}
-                              transition={{
-                                duration: 0.6,
-                                repeat: Infinity,
-                                delay: i * 0.15,
-                              }}
-                            />
-                          ))}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-3 rounded-2xl rounded-tl-sm bg-gradient-to-br from-background to-muted border border-border/50 px-4 py-3 shadow-sm">
+                            <span className="text-[10px] text-brand font-medium tracking-wide">
+                              {reasoning || "Typing..."}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {[0, 1, 2].map((i) => (
+                                <motion.span
+                                  key={i}
+                                  className="block h-1 w-1 rounded-full bg-brand"
+                                  animate={{ y: [0, -3, 0] }}
+                                  transition={{
+                                    duration: 0.6,
+                                    repeat: Infinity,
+                                    delay: i * 0.15,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -543,21 +568,28 @@ export function AIChatbot() {
 
                 {/* ── Input Bar ────────────────────────────────────────── */}
                 <div className="shrink-0 border-t border-border bg-background/95 p-3">
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 focus-within:border-brand transition-colors">
+                  <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/60 backdrop-blur-sm px-3 py-2 focus-within:border-brand/60 focus-within:shadow-[0_0_15px_rgba(47,141,70,0.1)] transition-all duration-300">
                     <input
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Ask anything… products, gifts, orders"
-                      className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/70"
+                      className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/70 text-foreground"
                       aria-label="Message AI Shopping Assistant"
                     />
+                    <button
+                      type="button"
+                      className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition hover:text-brand hover:bg-brand/10 cursor-pointer"
+                      title="Voice input coming soon"
+                    >
+                       <Mic className="size-3.5" />
+                    </button>
                     <button
                       onClick={() => sendMessage()}
                       disabled={!input.trim() || isTyping}
                       aria-label="Send message"
-                      className="grid h-7 w-7 place-items-center rounded-lg bg-brand text-brand-foreground transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      className="grid h-7 w-7 place-items-center rounded-lg bg-brand text-brand-foreground transition hover:opacity-90 hover:shadow-[0_0_12px_rgba(47,141,70,0.4)] disabled:opacity-40 disabled:hover:shadow-none disabled:cursor-not-allowed cursor-pointer"
                     >
                       <Send className="size-3.5" />
                     </button>
